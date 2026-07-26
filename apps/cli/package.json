@@ -1,0 +1,27 @@
+{
+  "name": "mcphq",
+  "version": "0.0.1",
+  "description": "Your MCP headquarters. One HQ. Every client.",
+  "type": "module",
+  "bin": {
+    "mcphq": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "@mcphq/core": "workspace:*",
+    "@mcphq/ui": "workspace:*",
+    "commander": "^14.0.0",
+    "env-paths": "^3.0.0",
+    "picocolors": "^1.1.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
