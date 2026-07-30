@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
+    "mcphq": "bun apps/cli/src/index.ts",
     "test": "bun test",
     "lint": "biome check .",
     "format": "biome format --write ."

@@ -1,5 +1,8 @@
 import { ClaudeCodeAdapter } from "./claude-code.js";
+import { CodexAdapter } from "./codex.js";
+import { CursorAdapter } from "./cursor.js";
 import type { ClientAdapter } from "./types.js";
+import { VsCodeAdapter } from "./vscode.js";
 
 export interface AdapterContext {
   /** Project root, used by adapters with project-scoped config files. */
@@ -11,7 +14,12 @@ export interface AdapterContext {
  * fans out over this list. Adding a client = one adapter file + one line here.
  */
 export function getAdapters(context: AdapterContext = {}): ClientAdapter[] {
-  return [new ClaudeCodeAdapter({ projectDir: context.projectDir })];
+  return [
+    new ClaudeCodeAdapter({ projectDir: context.projectDir }),
+    new CursorAdapter({ projectDir: context.projectDir }),
+    new VsCodeAdapter({ projectDir: context.projectDir }),
+    new CodexAdapter({ projectDir: context.projectDir }),
+  ];
 }
 
 /** Only the adapters whose client is actually installed on this machine. */

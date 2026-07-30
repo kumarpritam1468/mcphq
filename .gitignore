@@ -5,3 +5,8 @@ docs/
 .turbo/
 *.log
 .DS_Store
+.vscode/
+.cursor/
+.codex/
+.mcp.json
+mcp.config.json

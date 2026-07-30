@@ -5,6 +5,14 @@ export {
   type ClaudeCodeAdapterOptions,
 } from "./adapters/claude-code.js";
 export {
+  CodexAdapter,
+  type CodexAdapterOptions,
+} from "./adapters/codex.js";
+export {
+  CursorAdapter,
+  type CursorAdapterOptions,
+} from "./adapters/cursor.js";
+export {
   type AdapterContext,
   getAdapters,
   getDetectedAdapters,
@@ -18,6 +26,11 @@ export type {
   WriteOptions,
   WriteResult,
 } from "./adapters/types.js";
+export {
+  VsCodeAdapter,
+  type VsCodeAdapterOptions,
+  vsCodeUserDir,
+} from "./adapters/vscode.js";
 export {
   type ConfigFile,
   configFileSchema,
@@ -50,4 +63,5 @@ export {
   backupFile,
   readJsonFile,
   writeJsonFileSafe,
+  writeTextFileSafe,
 } from "./fs-safe.js";

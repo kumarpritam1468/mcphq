@@ -57,6 +57,21 @@ export function writeJsonFileSafe(
   filePath: string,
   data: unknown,
 ): string | null {
+  const serialized = `${JSON.stringify(data, null, 2)}\n`;
+  return writeTextFileSafe(filePath, serialized, (raw) => {
+    JSON.parse(raw);
+  });
+}
+
+/**
+ * Atomically replace a structured text file after validating the bytes written
+ * to the temporary file. JSON and TOML adapters share this safety boundary.
+ */
+export function writeTextFileSafe(
+  filePath: string,
+  content: string,
+  validate: (content: string) => void,
+): string | null {
   const backupPath = backupFile(filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
@@ -65,9 +80,8 @@ export function writeJsonFileSafe(
     `.${path.basename(filePath)}.mcphq-tmp-${process.pid}`,
   );
   try {
-    fs.writeFileSync(tempPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-    // Validate what actually landed on disk before it replaces the original.
-    JSON.parse(fs.readFileSync(tempPath, "utf8"));
+    fs.writeFileSync(tempPath, content, "utf8");
+    validate(fs.readFileSync(tempPath, "utf8"));
     fs.renameSync(tempPath, filePath);
   } catch (err) {
     try {

@@ -8,6 +8,7 @@ import {
   backupFile,
   readJsonFile,
   writeJsonFileSafe,
+  writeTextFileSafe,
 } from "./fs-safe.js";
 
 let tmp: string;
@@ -56,6 +57,21 @@ describe("writeJsonFileSafe", () => {
     const file = path.join(tmp, "data.json");
     writeJsonFileSafe(file, { ok: true });
     expect(fs.readdirSync(tmp)).toEqual(["data.json"]);
+  });
+});
+
+describe("writeTextFileSafe", () => {
+  test("validation failure leaves the original file untouched", () => {
+    const file = path.join(tmp, "config.toml");
+    fs.writeFileSync(file, 'model = "original"\n');
+
+    expect(() =>
+      writeTextFileSafe(file, "invalid", () => {
+        throw new Error("invalid TOML");
+      }),
+    ).toThrow(ConfigError);
+    expect(fs.readFileSync(file, "utf8")).toBe('model = "original"\n');
+    expect(fs.existsSync(`${file}${BACKUP_SUFFIX}`)).toBe(true);
   });
 });
 
