@@ -1,49 +1,76 @@
+<div align="center">
+
 # mcphq
 
-Your MCP headquarters. Define MCP servers once and sync them to every AI coding client you use.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./.github/assets/banner-light.svg">
+  <img alt="mcphq — your MCP headquarters. Define every server once, sync it everywhere." src="./.github/assets/banner-dark.svg" width="100%">
+</picture>
 
-One HQ. Every client.
+<br />
+<br />
 
-mcphq is under active development. The currently usable workflow is `init` and
-`sync`; `list`, `remove`, `import`, `add`, and `doctor` are planned but are not
-available yet.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Built with Bun](https://img.shields.io/badge/built%20with-Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Code style: Biome](https://img.shields.io/badge/code%20style-biome-60A5FA?logo=biome&logoColor=white)](https://biomejs.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+[![GitHub Stars](https://img.shields.io/github/stars/kumarpritam1468/mcphq?style=flat&color=yellow)](https://github.com/kumarpritam1468/mcphq/stargazers)
+[![GitHub last commit](https://img.shields.io/github/last-commit/kumarpritam1468/mcphq?color=blueviolet)](https://github.com/kumarpritam1468/mcphq/commits/main)
+[![Open issues](https://img.shields.io/github/issues/kumarpritam1468/mcphq?color=orange)](https://github.com/kumarpritam1468/mcphq/issues)
+
+**[Quickstart](#quickstart)** · **[Commands](#commands)** · **[Supported Clients](#supported-clients)** · **[How It Works](#how-it-works)** · **[Roadmap](#roadmap)** · **[Contributing](./CONTRIBUTING.md)**
+
+</div>
+
+<br />
+
+> **The problem in one sentence:** every AI coding tool invented its own place to store MCP server config — so adding one server means hand-editing Claude Code's JSON, Cursor's JSON, VS Code's JSON, and Codex's TOML, separately, forever, without any of them knowing the others exist.
+>
+> **mcphq is the fix.** Write the server definition once, in one file you actually control. Run `mcphq sync`. It's live in every client, in each client's own native format — and mcphq never touches anything it doesn't own.
+
+<br />
+
+## Features
+
+- **One config, every client** — `mcp.config.json` is the only file you hand-edit. Everything else is generated.
+- **Never clobbers what it doesn't own** — sync *upserts* only the servers you defined. Manually-added entries and unrelated client settings are left exactly as they are.
+- **Drift detection** — `mcphq doctor` notices when a client config was hand-edited after the last sync, shows you exactly what changed field-by-field, and lets you decide: keep the hand-edit, restore from config, or skip. No silent overwrites, ever.
+- **Safe by construction** — every write is backed up (`.mcphq-backup`), staged to a temp file, parsed back to confirm it's valid, then atomically renamed into place. A crash mid-write never corrupts your config.
+- **Import what's already there** — already have servers configured by hand in Claude Code or Cursor? `mcphq import` pulls them into `mcp.config.json` so you stop maintaining duplicates.
+- **Zero-surprise dry runs** — `--dry-run` on every mutating command shows the exact diff before anything touches disk.
 
 ## Supported Clients
 
-`sync` currently detects and configures:
+| Client | Format | Status |
+|---|---|---|
+| **Claude Code** | JSON (`~/.claude.json`, `.mcp.json`) | ✅ Supported |
+| **Cursor** | JSON | ✅ Supported |
+| **VS Code** (GitHub Copilot) | JSON | ✅ Supported |
+| **Codex CLI** | TOML | ✅ Supported |
 
-- Claude Code
-- Cursor
-- VS Code with GitHub Copilot
-- Codex
+`sync --dry-run` always prints the exact file paths it targets before writing anything. VS Code sync targets the default user profile and the current workspace; named VS Code profiles aren't supported yet.
 
-`sync --dry-run` prints the exact client configuration paths it will target.
-VS Code sync targets the default user profile and the current workspace; named
-VS Code profiles are not yet supported.
+Adding a new client is one file — see [Contributing](./CONTRIBUTING.md).
 
-## Try It
+## Quickstart
 
-Prerequisite: [Bun](https://bun.sh/) 1.3 or later. Clone the repository and
-install dependencies:
+**Prerequisite:** [Bun](https://bun.sh) 1.3+.
 
 ```bash
+git clone https://github.com/kumarpritam1468/mcphq.git
+cd mcphq
 bun install
 ```
 
-Create a project-level source-of-truth config. The interactive flow lets you
-enter a server immediately:
+Create your source-of-truth config:
 
 ```bash
 bun run mcphq -- init
 ```
 
-Alternatively, create the empty file without prompts:
-
-```bash
-bun run mcphq -- init --no-input
-```
-
-Add a server under `servers` in the generated `mcp.config.json`. For example:
+This walks you through adding your first server interactively. Prefer to skip straight to editing a file? `mcphq init --no-input` writes an empty config instead — then add servers by hand:
 
 ```json
 {
@@ -56,72 +83,63 @@ Add a server under `servers` in the generated `mcp.config.json`. For example:
 }
 ```
 
-Preview every change first. This parses detected client configurations and
-prints the target path and planned server changes without modifying a file:
+Preview what would change, then push it everywhere:
 
 ```bash
-bun run mcphq -- sync --dry-run
+bun run mcphq -- sync --dry-run   # see the exact diff, nothing is written
+bun run mcphq -- sync             # write it to every detected client
 ```
 
-When the preview is correct, write the config to each detected client:
+That's it — the server is now configured in every AI client on your machine, in each client's own native format.
 
-```bash
-bun run mcphq -- sync
-```
+## Commands
 
-If an existing client entry has the same name but differs from
-`mcp.config.json`, mcphq asks before replacing it. Use `--force` to accept all
-such updates, or `--no-input` to skip them in CI or scripts:
+| Command | What it does |
+|---|---|
+| `mcphq init` | Create `mcp.config.json`, interactively or with `--no-input` |
+| `mcphq sync` | Push `mcp.config.json` into every detected client. `--dry-run` to preview, `--force` to accept all overwrites, `--no-input` for CI |
+| `mcphq list` | Show every configured server and which clients it's synced to |
+| `mcphq doctor` | Detect drift since the last sync and reconcile it (keep-theirs / keep-mine / skip), server by server |
+| `mcphq remove <server>` | Remove a server from `mcp.config.json` and every synced client |
+| `mcphq import` | Pull servers already hand-configured in a detected client into `mcp.config.json`. `--global` targets the global config, `--force` to overwrite conflicts |
 
-```bash
-bun run mcphq -- sync --force
-bun run mcphq -- sync --no-input
-```
+Run any command with `--help` for the full flag list.
 
-## What Sync Changes
+## How It Works
 
-`mcp.config.json` is the source of truth. Sync upserts only the named servers
-from that file. It does not remove manually configured servers or unrelated
-client settings.
+- **`mcp.config.json`** is validated with Zod and expanded into a canonical `McpServer` shape shared by every adapter.
+- **Adapters** (`packages/core/src/adapters/`) know how to read and write one specific client's config format. Each one **upserts only the servers mcphq owns** — it never removes a manually-added entry or touches unrelated keys in your config.
+- **`mcphq.lock.json`** records a content hash of what was last synced to each client, per server. `mcphq doctor` compares the client's current state against it to catch hand-edits — no more silently-diverging configs nobody notices until something breaks.
+- **Every write is atomic**: backup → write to temp file → parse the temp file to confirm it's valid → rename over the original. A crash mid-write leaves your original file untouched.
 
-Before replacing an existing config file, mcphq creates a rolling backup beside
-it with the `.mcphq-backup` suffix. Writes are atomic: the new file is written
-and parsed as a temporary file before replacing the original.
+## Roadmap
 
-Codex uses TOML rather than JSON. Its unrelated configuration and MCP policy
-fields are preserved, but comments and formatting can be normalized on a write.
-Codex supports stdio and Streamable HTTP; an `sse` source entry is written as a
-URL and reads back as HTTP because Codex has no separate SSE configuration
-type.
+mcphq is under active development. Shipped so far:
 
-## Manual Acceptance Test
+- [x] `init` / `sync` — canonical config, multi-client sync, safe atomic writes
+- [x] `list` / `remove` / `import` — full config lifecycle without hand-editing client files
+- [x] `doctor` — drift detection against a lockfile, with keep-theirs/keep-mine reconciliation
 
-Use this once you have at least two supported clients installed:
+Coming next:
 
-1. Add a test server to `mcp.config.json` and run `sync --dry-run`.
-2. Confirm the preview identifies the expected client paths and only the server you added.
-3. Run `sync`, then confirm the server appears in at least two client configs.
-4. Confirm a pre-existing manual server and unrelated client settings remain unchanged.
-5. Confirm each modified existing config has a neighboring `.mcphq-backup` file.
-6. Run `sync --dry-run` again and confirm the managed server is reported as unchanged.
+- [ ] `mcphq add <server>` — look up a server in the MCP Registry, show publisher trust info, then add + sync
+- [ ] Static security checks — flag suspicious env access, destructive command patterns, unverified publishers
+- [ ] Compiled binaries + `npx mcphq` — no Bun install required
+- [ ] CI across Windows/macOS/Linux
 
-Do not use `--force` for this test unless you intentionally want
-`mcp.config.json` to replace an existing same-named client entry.
+## Contributing
 
-## Development
+Contributions are very welcome — this is an early-stage project and there's real design space left, especially around new client adapters and the security-checking track. See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for setup, the one-file adapter pitch, and how to open a good PR. Please also read our **[Code of Conduct](./CODE_OF_CONDUCT.md)**.
 
-```bash
-bun run mcphq -- --version                # run the CLI
-bun test                                  # run tests
-bun run build                             # turbo build across packages
-bun run lint                              # biome
-```
+Found a security issue? Please don't open a public issue — see **[SECURITY.md](./SECURITY.md)**.
 
-Run only the adapter tests while working on sync behavior:
+## Founders
 
-```bash
-bun test packages/core/src/adapters
-```
+Built and maintained by:
 
-The full test suite includes round-trip, merge-preservation, dry-run, invalid
-config, backup, and atomic-write coverage for all four adapters.
+- **Pritam Kumar Manohari** — [@kumarpritam1468](https://github.com/kumarpritam1468)
+- **Sujal Kumar Ghosh** — [@SujalKrG](https://github.com/SujalKrG)
+
+## License
+
+MIT © 2026 Pritam Kumar Manohari and Sujal Kumar Ghosh — see [LICENSE](./LICENSE).

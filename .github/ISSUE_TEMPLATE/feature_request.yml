@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest an idea, a new client adapter, or an improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before requesting a new AI client adapter, check the [Roadmap](../../README.md#roadmap) and [Supported Clients](../../README.md#supported-clients) — it might already be planned. Adding a client is also one of the easiest contributions to make yourself — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What are you trying to do that mcphq doesn't support today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+      description: Your proposed solution, command, or flag. Doesn't need to be exact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you're using today, or other approaches you considered.
+    validations:
+      required: false
