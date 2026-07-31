@@ -59,6 +59,7 @@ export {
   resolveConfigPath,
   writeConfigFile,
 } from "./config.js";
+export { computeDrift, type DriftEntry, type DriftStatus } from "./drift.js";
 export {
   BACKUP_SUFFIX,
   backupFile,
@@ -66,3 +67,14 @@ export {
   writeJsonFileSafe,
   writeTextFileSafe,
 } from "./fs-safe.js";
+export {
+  hashServer,
+  LOCKFILE_NAME,
+  type LockFile,
+  type LockfileEntry,
+  lockfilePathFor,
+  readLockfile,
+  removeLockfileEntries,
+  updateLockfileEntries,
+  writeLockfile,
+} from "./lockfile.js";

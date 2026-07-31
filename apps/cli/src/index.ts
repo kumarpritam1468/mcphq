@@ -3,6 +3,7 @@ import { CORE_NAME } from "@mcphq/core";
 import { Command } from "commander";
 
 import pkg from "../package.json" with { type: "json" };
+import { registerDoctor } from "./commands/doctor.js";
 import { registerImport } from "./commands/import.js";
 import { registerInit } from "./commands/init.js";
 import { registerList } from "./commands/list.js";
@@ -18,6 +19,7 @@ program
   )
   .version(pkg.version);
 
+registerDoctor(program);
 registerImport(program);
 registerInit(program);
 registerList(program);

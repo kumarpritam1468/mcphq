@@ -3,7 +3,11 @@ import {
   ConfigError,
   getDetectedAdapters,
   loadConfig,
+  lockfilePathFor,
+  readLockfile,
+  removeLockfileEntries,
   writeConfigFile,
+  writeLockfile,
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
@@ -95,6 +99,14 @@ async function runRemove(name: string, options: RemoveOptions): Promise<void> {
       console.log(pc.green(`  ✔ removed from ${result.path}`));
     }
   }
+
+  let lockfile = readLockfile(lockfilePathFor(config.path));
+  for (const adapter of adapters) {
+    lockfile = removeLockfileEntries(lockfile, adapter.name, config.scope, [
+      name,
+    ]);
+  }
+  writeLockfile(lockfilePathFor(config.path), lockfile);
 
   const remainingServers = { ...config.config.servers };
   delete remainingServers[name];

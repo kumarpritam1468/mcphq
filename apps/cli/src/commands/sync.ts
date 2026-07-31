@@ -5,8 +5,12 @@ import {
   getDetectedAdapters,
   type LoadedConfig,
   loadConfig,
+  lockfilePathFor,
+  readLockfile,
   type ServerChange,
+  updateLockfileEntries,
   type WriteResult,
+  writeLockfile,
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
@@ -80,9 +84,25 @@ async function runSync(options: SyncOptions): Promise<void> {
   }
 
   let wroteAnything = false;
+  let lockfile = readLockfile(lockfilePathFor(config.path));
   for (const adapter of adapters) {
     wroteAnything =
       (await syncAdapter(adapter, config, options)) || wroteAnything;
+    if (!options.dryRun) {
+      const finalState = await adapter.read(config.scope);
+      const owned = finalState.servers.filter((s) =>
+        config.servers.some((c) => c.name === s.name),
+      );
+      lockfile = updateLockfileEntries(
+        lockfile,
+        adapter.name,
+        config.scope,
+        owned,
+      );
+    }
+  }
+  if (!options.dryRun) {
+    writeLockfile(lockfilePathFor(config.path), lockfile);
   }
 
   if (options.dryRun) {
