@@ -2,6 +2,10 @@
 
 # mcphq
 
+> Your MCP headquarters - define every MCP server once, sync it to Claude Code, Cursor, VS Code, and Codex. One config, zero drift.
+
+`mcp` `model-context-protocol` `cli` `claude-code` `cursor` `vscode` `codex` `developer-tools` `bun` `typescript`
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="./.github/assets/banner-light.svg">
