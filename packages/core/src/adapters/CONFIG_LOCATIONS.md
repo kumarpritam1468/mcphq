@@ -14,7 +14,7 @@ Verification levels:
 
 | Scope | Path | Notes |
 |---|---|---|
-| user (mcphq: `global`) | `~/.claude.json` — top-level `mcpServers` key | macOS: **verified** (2026-07-26). Linux/Windows (`%USERPROFILE%\.claude.json`): docs. |
+| user (mcphq: `global`) | `~/.claude.json` — top-level `mcpServers` key | macOS: **verified** (2026-07-26). Windows (`%USERPROFILE%\.claude.json`): **verified** (2026-07-31). Linux: docs. |
 | project | `<project>/.mcp.json` — top-level `mcpServers` key | macOS: **verified** (2026-07-26). Same relative path on all OSes. |
 | local (per-project, private) | `~/.claude.json` → `projects["<abs project path>"].mcpServers` | **verified** (2026-07-26). Read-only for mcphq: `import` may read it; `sync` never writes it. |
 
@@ -60,7 +60,7 @@ real macOS installation inspected on 2026-07-28.
 
 | Scope | Windows | macOS / Linux | Verification |
 |---|---|---|---|
-| user (mcphq: `global`) | `%USERPROFILE%\.cursor\mcp.json` | `~/.cursor/mcp.json` | macOS: **verified**; Windows/Linux: docs, needs external verification before launch |
+| user (mcphq: `global`) | `%USERPROFILE%\.cursor\mcp.json` | `~/.cursor/mcp.json` | macOS: **verified**; Windows: **verified** (2026-07-31, `%USERPROFILE%\.cursor\` directory confirmed on a real install; `mcp.json` shape not yet observed since no server configured through Cursor UI, but path resolution and `detect()` are confirmed correct); Linux: docs, needs external verification before launch |
 | project | `<project>\.cursor\mcp.json` | `<project>/.cursor/mcp.json` | docs; same project-relative location on all OSes |
 
 Cursor stores entries under a top-level `mcpServers` map:
@@ -100,7 +100,7 @@ and a real macOS installation inspected on 2026-07-28.
 
 | Scope | Windows | macOS | Linux | Verification |
 |---|---|---|---|---|
-| user/default profile (mcphq: `global`) | `%APPDATA%\Code\User\mcp.json` | `~/Library/Application Support/Code/User/mcp.json` | `${XDG_CONFIG_HOME:-~/.config}/Code/User/mcp.json` | macOS: **verified**; Windows/Linux: docs, needs external verification before launch |
+| user/default profile (mcphq: `global`) | `%APPDATA%\Code\User\mcp.json` | `~/Library/Application Support/Code/User/mcp.json` | `${XDG_CONFIG_HOME:-~/.config}/Code/User/mcp.json` | macOS: **verified**; Windows: **verified** (2026-07-31); Linux: docs, needs external verification before launch |
 | workspace (mcphq: `project`) | `<project>\.vscode\mcp.json` | `<project>/.vscode/mcp.json` | `<project>/.vscode/mcp.json` | docs; same project-relative location on all OSes |
 
 VS Code stores entries under a top-level `servers` map:
@@ -144,7 +144,7 @@ installation inspected on 2026-07-28.
 
 | Scope | Windows | macOS / Linux | Verification |
 |---|---|---|---|
-| user (mcphq: `global`) | `%USERPROFILE%\.codex\config.toml` | `~/.codex/config.toml` | macOS: **verified**; Windows/Linux: docs, needs external verification before launch |
+| user (mcphq: `global`) | `%USERPROFILE%\.codex\config.toml` | `~/.codex/config.toml` | macOS: **verified**; Windows: **verified** (2026-07-31, path + TOML format; real install had no live `mcp_servers` entry to confirm shape against); Linux: docs, needs external verification before launch |
 | trusted project | `<project>\.codex\config.toml` | `<project>/.codex/config.toml` | docs; same project-relative location on all OSes |
 
 Codex stores each entry in a TOML table under `mcp_servers`:

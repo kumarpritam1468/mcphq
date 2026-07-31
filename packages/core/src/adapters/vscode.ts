@@ -41,18 +41,19 @@ export function vsCodeUserDir(
   platform: NodeJS.Platform,
   env: NodeJS.ProcessEnv,
 ): string {
+  const p = platform === "win32" ? path.win32 : path.posix;
   if (platform === "darwin") {
-    return path.join(homeDir, "Library", "Application Support", "Code", "User");
+    return p.join(homeDir, "Library", "Application Support", "Code", "User");
   }
   if (platform === "win32") {
-    return path.join(
-      env.APPDATA ?? path.join(homeDir, "AppData", "Roaming"),
+    return p.join(
+      env.APPDATA ?? p.join(homeDir, "AppData", "Roaming"),
       "Code",
       "User",
     );
   }
-  return path.join(
-    env.XDG_CONFIG_HOME ?? path.join(homeDir, ".config"),
+  return p.join(
+    env.XDG_CONFIG_HOME ?? p.join(homeDir, ".config"),
     "Code",
     "User",
   );

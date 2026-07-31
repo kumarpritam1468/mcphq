@@ -94,6 +94,6 @@ describe("VsCodeAdapter", () => {
     );
     expect(
       vsCodeUserDir("C:\\Users\\dev", "win32", { APPDATA: "D:\\Roaming" }),
-    ).toBe(path.join("D:\\Roaming", "Code", "User"));
+    ).toBe(path.win32.join("D:\\Roaming", "Code", "User"));
   });
 });
