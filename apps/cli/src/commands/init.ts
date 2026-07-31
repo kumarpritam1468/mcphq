@@ -1,4 +1,3 @@
-import * as path from "node:path";
 import {
   cancel,
   confirm,
@@ -21,6 +20,7 @@ import {
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { configPathFor } from "../shared.js";
 
 interface InitOptions {
   input: boolean; // commander turns --no-input into { input: false }
@@ -56,12 +56,6 @@ export function registerInit(program: Command): void {
         throw err;
       }
     });
-}
-
-function configPathFor(scope: Scope): string {
-  return scope === "global"
-    ? globalConfigPath()
-    : path.join(process.cwd(), CONFIG_FILE_NAME);
 }
 
 function runNonInteractive(options: InitOptions): void {

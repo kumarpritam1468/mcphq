@@ -1,11 +1,9 @@
 import * as path from "node:path";
 import {
-  CONFIG_FILE_NAME,
   ConfigError,
   defaultConfig,
   fromCanonical,
   getDetectedAdapters,
-  globalConfigPath,
   loadConfig,
   type McpServer,
   type Scope,
@@ -13,6 +11,7 @@ import {
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { configPathFor } from "../shared.js";
 
 interface ImportOptions {
   dryRun?: boolean;
@@ -81,13 +80,8 @@ async function runImport(options: ImportOptions): Promise<void> {
   }
   const scope: Scope =
     existing?.scope ?? (options.global ? "global" : "project");
-  const targetPath =
-    existing?.path ??
-    (scope === "global"
-      ? globalConfigPath()
-      : path.join(process.cwd(), CONFIG_FILE_NAME));
+  const targetPath = existing?.path ?? configPathFor(scope);
   const configFile = existing?.config ?? defaultConfig();
-  const servers = { ...configFile.servers };
   const currentServers = new Map<string, McpServer>(
     (existing?.servers ?? []).map((s) => [s.name, s]),
   );
@@ -95,9 +89,7 @@ async function runImport(options: ImportOptions): Promise<void> {
   const projectDir = existing ? path.dirname(existing.path) : process.cwd();
   const adapters = await getDetectedAdapters({ projectDir });
   if (adapters.length === 0) {
-    console.log(
-      pc.yellow("No supported AI clients detected on this machine."),
-    );
+    console.log(pc.yellow("No supported AI clients detected on this machine."));
     return;
   }
 
@@ -125,7 +117,6 @@ async function runImport(options: ImportOptions): Promise<void> {
     for (const server of found) {
       const current = currentServers.get(server.name);
       if (!current) {
-        servers[server.name] = fromCanonical(server);
         currentServers.set(server.name, server);
         added++;
         console.log(
@@ -133,9 +124,8 @@ async function runImport(options: ImportOptions): Promise<void> {
             pc.dim(` (from ${adapter.displayName})`),
         );
       } else if (contentKey(current) === contentKey(server)) {
-        continue;
+        // identical to what's already configured, nothing to do
       } else if (options.force) {
-        servers[server.name] = fromCanonical(server);
         currentServers.set(server.name, server);
         updated++;
         console.log(
@@ -170,6 +160,9 @@ async function runImport(options: ImportOptions): Promise<void> {
     return;
   }
 
+  const servers = Object.fromEntries(
+    [...currentServers.values()].map((s) => [s.name, fromCanonical(s)]),
+  );
   writeConfigFile(targetPath, { ...configFile, servers }, { force: true });
   console.log(pc.green(`✔ wrote ${targetPath}`));
   console.log(

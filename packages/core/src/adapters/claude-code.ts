@@ -93,7 +93,7 @@ export class ClaudeCodeAdapter implements ClientAdapter {
 
   async read(scope: Scope): Promise<ReadResult> {
     const filePath = this.pathFor(scope);
-    const entries = readServersMap(filePath);
+    const entries = serversMapFrom(readJsonFile(filePath));
     const servers: McpServer[] = [];
     const warnings: string[] = [];
 
@@ -116,7 +116,7 @@ export class ClaudeCodeAdapter implements ClientAdapter {
   ): Promise<WriteResult> {
     const filePath = this.pathFor(options.scope);
     const document = (readJsonFile(filePath) ?? {}) as Record<string, unknown>;
-    const existing = readServersMap(filePath);
+    const existing = serversMapFrom(document);
 
     const changes: ServerChange[] = [];
     const next: Record<string, unknown> = { ...existing };
@@ -149,13 +149,10 @@ export class ClaudeCodeAdapter implements ClientAdapter {
     return { path: filePath, changes, written: true, backupPath };
   }
 
-  async remove(
-    names: string[],
-    options: WriteOptions,
-  ): Promise<WriteResult> {
+  async remove(names: string[], options: WriteOptions): Promise<WriteResult> {
     const filePath = this.pathFor(options.scope);
     const document = (readJsonFile(filePath) ?? {}) as Record<string, unknown>;
-    const existing = readServersMap(filePath);
+    const existing = serversMapFrom(document);
     const next: Record<string, unknown> = { ...existing };
     const changes: ServerChange[] = [];
 
@@ -175,9 +172,8 @@ export class ClaudeCodeAdapter implements ClientAdapter {
   }
 }
 
-/** Extract the mcpServers map from a client file, tolerating absence. */
-function readServersMap(filePath: string): Record<string, unknown> {
-  const document = readJsonFile(filePath);
+/** Extract the mcpServers map from an already-parsed client document, tolerating absence. */
+function serversMapFrom(document: unknown): Record<string, unknown> {
   if (document === undefined || document === null) return {};
   const servers = (document as Record<string, unknown>).mcpServers;
   if (servers === undefined || servers === null) return {};

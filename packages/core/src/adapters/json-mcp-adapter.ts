@@ -74,7 +74,7 @@ export class JsonMcpAdapter implements ClientAdapter {
 
   async read(scope: Scope): Promise<ReadResult> {
     const filePath = this.pathFor(scope);
-    const entries = this.readServersMap(filePath);
+    const entries = this.serversMapFrom(readJsonFile(filePath));
     const servers: McpServer[] = [];
     const warnings: string[] = [];
 
@@ -97,7 +97,7 @@ export class JsonMcpAdapter implements ClientAdapter {
   ): Promise<WriteResult> {
     const filePath = this.pathFor(options.scope);
     const document = (readJsonFile(filePath) ?? {}) as Record<string, unknown>;
-    const existing = this.readServersMap(filePath);
+    const existing = this.serversMapFrom(document);
     const next: Record<string, unknown> = { ...existing };
     const changes: ServerChange[] = [];
 
@@ -129,13 +129,10 @@ export class JsonMcpAdapter implements ClientAdapter {
     return { path: filePath, changes, written: true, backupPath };
   }
 
-  async remove(
-    names: string[],
-    options: WriteOptions,
-  ): Promise<WriteResult> {
+  async remove(names: string[], options: WriteOptions): Promise<WriteResult> {
     const filePath = this.pathFor(options.scope);
     const document = (readJsonFile(filePath) ?? {}) as Record<string, unknown>;
-    const existing = this.readServersMap(filePath);
+    const existing = this.serversMapFrom(document);
     const next: Record<string, unknown> = { ...existing };
     const changes: ServerChange[] = [];
 
@@ -164,8 +161,7 @@ export class JsonMcpAdapter implements ClientAdapter {
     return location.path;
   }
 
-  private readServersMap(filePath: string): Record<string, unknown> {
-    const document = readJsonFile(filePath);
+  private serversMapFrom(document: unknown): Record<string, unknown> {
     if (document === undefined || document === null) return {};
     const entries = (document as Record<string, unknown>)[this.serverKey];
     if (entries === undefined || entries === null) return {};

@@ -1,5 +1,4 @@
 import * as path from "node:path";
-import { confirm, isCancel } from "@clack/prompts";
 import {
   ConfigError,
   getDetectedAdapters,
@@ -8,6 +7,7 @@ import {
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { confirmOrForce } from "../shared.js";
 
 interface RemoveOptions {
   dryRun?: boolean;
@@ -18,9 +18,7 @@ interface RemoveOptions {
 export function registerRemove(program: Command): void {
   program
     .command("remove <server>")
-    .description(
-      "remove a server from mcp.config.json and every synced client",
-    )
+    .description("remove a server from mcp.config.json and every synced client")
     .option("-n, --dry-run", "show what would change without writing anything")
     .option("-f, --force", "skip the confirmation prompt")
     .option("--no-input", "never prompt; requires --force to actually remove")
@@ -38,10 +36,7 @@ export function registerRemove(program: Command): void {
     });
 }
 
-async function runRemove(
-  name: string,
-  options: RemoveOptions,
-): Promise<void> {
+async function runRemove(name: string, options: RemoveOptions): Promise<void> {
   const config = loadConfig();
   if (!config) {
     console.error(
@@ -51,7 +46,7 @@ async function runRemove(
     return;
   }
 
-  if (!(name in config.config.servers)) {
+  if (!Object.hasOwn(config.config.servers, name)) {
     console.error(
       pc.red(`"${name}" is not in ${config.path}.`) +
         ` Run ${pc.bold("mcphq list")} to see configured servers.`,
@@ -83,19 +78,21 @@ async function runRemove(
     return;
   }
 
-  if (!options.force) {
-    let approved = false;
-    if (options.input) {
-      const answer = await confirm({
-        message: `Remove "${name}" from mcp.config.json and ${clientTargets} client${clientTargets === 1 ? "" : "s"}?`,
-        initialValue: true,
-      });
-      approved = !isCancel(answer) && answer;
-    }
-    if (!approved) {
-      console.log(pc.yellow("Cancelled — nothing was removed."));
-      process.exitCode = 1;
-      return;
+  const approved = await confirmOrForce(
+    options.force,
+    options.input,
+    `Remove "${name}" from mcp.config.json and ${clientTargets} client${clientTargets === 1 ? "" : "s"}?`,
+  );
+  if (!approved) {
+    console.log(pc.yellow("Cancelled — nothing was removed."));
+    process.exitCode = 1;
+    return;
+  }
+
+  for (const adapter of adapters) {
+    const result = await adapter.remove([name], { scope: config.scope });
+    if (result.written) {
+      console.log(pc.green(`  ✔ removed from ${result.path}`));
     }
   }
 
@@ -107,11 +104,4 @@ async function runRemove(
     { force: true },
   );
   console.log(pc.green(`  ✔ removed from ${config.path}`));
-
-  for (const adapter of adapters) {
-    const result = await adapter.remove([name], { scope: config.scope });
-    if (result.written) {
-      console.log(pc.green(`  ✔ removed from ${result.path}`));
-    }
-  }
 }

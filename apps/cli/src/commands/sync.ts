@@ -1,5 +1,4 @@
 import * as path from "node:path";
-import { confirm, isCancel } from "@clack/prompts";
 import {
   type ClientAdapter,
   ConfigError,
@@ -11,6 +10,7 @@ import {
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { confirmOrForce } from "../shared.js";
 
 interface SyncOptions {
   dryRun?: boolean;
@@ -111,15 +111,12 @@ async function syncAdapter(
   const updates = plan.changes.filter((c) => c.action === "update");
   let serversToWrite = config.servers;
 
-  if (updates.length > 0 && !options.force) {
-    let approved = false;
-    if (options.input) {
-      const answer = await confirm({
-        message: `${adapter.displayName}: overwrite ${updates.length} differing entr${updates.length === 1 ? "y" : "ies"} (shown above)?`,
-        initialValue: true,
-      });
-      approved = !isCancel(answer) && answer;
-    }
+  if (updates.length > 0) {
+    const approved = await confirmOrForce(
+      options.force,
+      options.input,
+      `${adapter.displayName}: overwrite ${updates.length} differing entr${updates.length === 1 ? "y" : "ies"} (shown above)?`,
+    );
     if (!approved) {
       const skipped = new Set(updates.map((u) => u.server));
       serversToWrite = config.servers.filter((s) => !skipped.has(s.name));
