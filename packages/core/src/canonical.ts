@@ -136,3 +136,21 @@ export function toCanonical(config: ConfigFile, scope: Scope): McpServer[] {
     };
   });
 }
+
+/** Inverse of `toCanonical`: turn a canonical server back into a config-file entry. */
+export function fromCanonical(server: McpServer): ServerEntry {
+  if (server.transport === "stdio") {
+    return {
+      command: server.command,
+      ...(server.args.length > 0 ? { args: server.args } : {}),
+      ...(Object.keys(server.env).length > 0 ? { env: server.env } : {}),
+    };
+  }
+  return {
+    url: server.url,
+    ...(server.transport === "sse" ? { transport: "sse" as const } : {}),
+    ...(Object.keys(server.headers).length > 0
+      ? { headers: server.headers }
+      : {}),
+  };
+}

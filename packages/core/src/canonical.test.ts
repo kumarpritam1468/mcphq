@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   configFileSchema,
+  fromCanonical,
+  type McpServer,
   serverEntrySchema,
   toCanonical,
 } from "./canonical.js";
@@ -151,5 +153,59 @@ describe("toCanonical", () => {
         headers: {},
       },
     ]);
+  });
+});
+
+describe("fromCanonical", () => {
+  test("stdio server round-trips through toCanonical", () => {
+    const server: McpServer = {
+      name: "github",
+      scope: "project",
+      transport: "stdio",
+      command: "npx",
+      args: ["-y", "server-github"],
+      env: { TOKEN: "x" },
+    };
+    const entry = fromCanonical(server);
+    expect(entry).toEqual({
+      command: "npx",
+      args: ["-y", "server-github"],
+      env: { TOKEN: "x" },
+    });
+    const config = configFileSchema.parse({ servers: { github: entry } });
+    expect(toCanonical(config, "project")).toEqual([server]);
+  });
+
+  test("bare stdio server omits empty args/env", () => {
+    const server: McpServer = {
+      name: "x",
+      scope: "project",
+      transport: "stdio",
+      command: "npx",
+      args: [],
+      env: {},
+    };
+    expect(fromCanonical(server)).toEqual({ command: "npx" });
+  });
+
+  test("http and sse servers round-trip through toCanonical", () => {
+    const http: McpServer = {
+      name: "api",
+      scope: "project",
+      transport: "http",
+      url: "https://mcp.example.com",
+      headers: { Authorization: "Bearer x" },
+    };
+    const sse: McpServer = {
+      name: "legacy",
+      scope: "project",
+      transport: "sse",
+      url: "https://example.com/sse",
+      headers: {},
+    };
+    const config = configFileSchema.parse({
+      servers: { api: fromCanonical(http), legacy: fromCanonical(sse) },
+    });
+    expect(toCanonical(config, "project")).toEqual([http, sse]);
   });
 });

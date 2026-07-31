@@ -85,6 +85,15 @@ describe("VsCodeAdapter", () => {
     expect(raw.servers.manual.command).toBe("manual");
   });
 
+  test("remove deletes a server under the servers key", async () => {
+    await adapter.write([servers[0] as McpServer], { scope: "project" });
+    const result = await adapter.remove(["filesystem"], { scope: "project" });
+    expect(result.written).toBe(true);
+
+    const raw = JSON.parse(fs.readFileSync(projectFile, "utf8"));
+    expect(raw.servers.filesystem).toBeUndefined();
+  });
+
   test("resolves default user profile paths on every OS", () => {
     expect(vsCodeUserDir("/home/dev", "linux", {})).toBe(
       "/home/dev/.config/Code/User",

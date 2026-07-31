@@ -159,3 +159,51 @@ describe("read robustness", () => {
     expect(servers[0]?.transport).toBe("stdio");
   });
 });
+
+describe("remove", () => {
+  test("removes a server and preserves everything else", async () => {
+    await adapter.write([stdioServer, remoteServer], { scope: "project" });
+    const result = await adapter.remove(["github"], { scope: "project" });
+    expect(result.written).toBe(true);
+    expect(result.changes).toEqual([{ server: "github", action: "remove" }]);
+
+    const { servers } = await adapter.read("project");
+    expect(servers).toEqual([remoteServer]);
+  });
+
+  test("removing a name that isn't present is a no-op", async () => {
+    await adapter.write([stdioServer], { scope: "project" });
+    const result = await adapter.remove(["not-there"], { scope: "project" });
+    expect(result.written).toBe(false);
+    expect(result.changes).toEqual([]);
+  });
+
+  test("dry run reports the removal without touching the file", async () => {
+    await adapter.write([stdioServer], { scope: "project" });
+    const before = fs.readFileSync(projectFile, "utf8");
+    const result = await adapter.remove(["github"], {
+      scope: "project",
+      dryRun: true,
+    });
+    expect(result.written).toBe(false);
+    expect(result.changes).toEqual([{ server: "github", action: "remove" }]);
+    expect(fs.readFileSync(projectFile, "utf8")).toBe(before);
+  });
+
+  test("global remove only touches mcpServers, other state survives", async () => {
+    fs.writeFileSync(
+      globalFile,
+      JSON.stringify({
+        numStartups: 42,
+        mcpServers: { github: { command: "npx" }, manual: { command: "x" } },
+      }),
+    );
+    const result = await adapter.remove(["github"], { scope: "global" });
+    expect(result.written).toBe(true);
+
+    const after = JSON.parse(fs.readFileSync(globalFile, "utf8"));
+    expect(after.numStartups).toBe(42);
+    expect(after.mcpServers.github).toBeUndefined();
+    expect(after.mcpServers.manual.command).toBe("x");
+  });
+});

@@ -148,6 +148,31 @@ export class ClaudeCodeAdapter implements ClientAdapter {
     const backupPath = writeJsonFileSafe(filePath, document);
     return { path: filePath, changes, written: true, backupPath };
   }
+
+  async remove(
+    names: string[],
+    options: WriteOptions,
+  ): Promise<WriteResult> {
+    const filePath = this.pathFor(options.scope);
+    const document = (readJsonFile(filePath) ?? {}) as Record<string, unknown>;
+    const existing = readServersMap(filePath);
+    const next: Record<string, unknown> = { ...existing };
+    const changes: ServerChange[] = [];
+
+    for (const name of names) {
+      if (existing[name] === undefined) continue;
+      changes.push({ server: name, action: "remove" });
+      delete next[name];
+    }
+
+    if (options.dryRun || changes.length === 0) {
+      return { path: filePath, changes, written: false, backupPath: null };
+    }
+
+    document.mcpServers = next;
+    const backupPath = writeJsonFileSafe(filePath, document);
+    return { path: filePath, changes, written: true, backupPath };
+  }
 }
 
 /** Extract the mcpServers map from a client file, tolerating absence. */

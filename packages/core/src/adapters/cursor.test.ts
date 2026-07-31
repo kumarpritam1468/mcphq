@@ -91,4 +91,45 @@ describe("CursorAdapter", () => {
     expect(result.written).toBe(false);
     expect(fs.existsSync(projectFile)).toBe(false);
   });
+
+  test("remove deletes a server, preserves manual entries and unrelated keys", async () => {
+    fs.mkdirSync(path.dirname(projectFile), { recursive: true });
+    fs.writeFileSync(
+      projectFile,
+      JSON.stringify({
+        custom: true,
+        mcpServers: {
+          github: { command: "npx" },
+          manual: { command: "manual" },
+        },
+      }),
+    );
+    const result = await adapter.remove(["github"], { scope: "project" });
+    expect(result.written).toBe(true);
+    expect(result.changes).toEqual([{ server: "github", action: "remove" }]);
+
+    const raw = JSON.parse(fs.readFileSync(projectFile, "utf8"));
+    expect(raw.custom).toBe(true);
+    expect(raw.mcpServers.github).toBeUndefined();
+    expect(raw.mcpServers.manual.command).toBe("manual");
+  });
+
+  test("remove of a name that isn't present is a no-op", async () => {
+    const result = await adapter.remove(["nope"], { scope: "project" });
+    expect(result.written).toBe(false);
+    expect(result.changes).toEqual([]);
+    expect(fs.existsSync(projectFile)).toBe(false);
+  });
+
+  test("remove with dryRun reports the change without touching the file", async () => {
+    await adapter.write([servers[0] as McpServer], { scope: "project" });
+    const before = fs.readFileSync(projectFile, "utf8");
+    const result = await adapter.remove(["github"], {
+      scope: "project",
+      dryRun: true,
+    });
+    expect(result.written).toBe(false);
+    expect(result.changes).toEqual([{ server: "github", action: "remove" }]);
+    expect(fs.readFileSync(projectFile, "utf8")).toBe(before);
+  });
 });

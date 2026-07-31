@@ -3,7 +3,10 @@ import { CORE_NAME } from "@mcphq/core";
 import { Command } from "commander";
 
 import pkg from "../package.json" with { type: "json" };
+import { registerImport } from "./commands/import.js";
 import { registerInit } from "./commands/init.js";
+import { registerList } from "./commands/list.js";
+import { registerRemove } from "./commands/remove.js";
 import { registerSync } from "./commands/sync.js";
 
 const program = new Command();
@@ -15,7 +18,10 @@ program
   )
   .version(pkg.version);
 
+registerImport(program);
 registerInit(program);
+registerList(program);
+registerRemove(program);
 registerSync(program);
 
 program.parse();

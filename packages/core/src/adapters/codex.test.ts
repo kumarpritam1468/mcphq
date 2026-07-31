@@ -110,3 +110,45 @@ describe("CodexAdapter", () => {
     expect(fs.readFileSync(projectFile, "utf8")).toBe("[broken\n");
   });
 });
+
+describe("remove", () => {
+  test("removes a server, preserves unrelated TOML and manual entries", async () => {
+    fs.mkdirSync(path.dirname(projectFile), { recursive: true });
+    fs.writeFileSync(
+      projectFile,
+      [
+        'model = "gpt-test"',
+        "",
+        "[features]",
+        "goals = true",
+        "",
+        "[mcp_servers.context7]",
+        'command = "npx"',
+        "",
+        "[mcp_servers.manual]",
+        'command = "manual"',
+        "",
+      ].join("\n"),
+    );
+
+    const result = await adapter.remove(["context7"], { scope: "project" });
+    expect(result.written).toBe(true);
+    expect(result.changes).toEqual([
+      { server: "context7", action: "remove" },
+    ]);
+
+    const raw = parse(fs.readFileSync(projectFile, "utf8"));
+    const entries = raw.mcp_servers as Record<string, unknown>;
+    expect(raw.model).toBe("gpt-test");
+    expect(raw.features).toEqual({ goals: true });
+    expect(entries.context7).toBeUndefined();
+    expect(entries.manual).toBeDefined();
+  });
+
+  test("removing a name that isn't present is a no-op", async () => {
+    await adapter.write(servers, { scope: "project" });
+    const result = await adapter.remove(["nope"], { scope: "project" });
+    expect(result.written).toBe(false);
+    expect(result.changes).toEqual([]);
+  });
+});

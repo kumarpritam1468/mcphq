@@ -7,7 +7,7 @@ export interface ConfigLocation {
 }
 
 /** What happened (or would happen) to one server during a write. */
-export type ChangeAction = "add" | "update" | "unchanged";
+export type ChangeAction = "add" | "update" | "unchanged" | "remove";
 
 export interface ServerChange {
   server: string;
@@ -57,4 +57,10 @@ export interface ClientAdapter {
   read(scope: Scope): Promise<ReadResult>;
   /** Upsert the given servers into the client's config at `options.scope`. */
   write(servers: McpServer[], options: WriteOptions): Promise<WriteResult>;
+  /**
+   * Delete the named servers from the client's config at `options.scope`.
+   * Names not present in the file are silently ignored — a `remove` for an
+   * already-absent server is a no-op, not an error.
+   */
+  remove(names: string[], options: WriteOptions): Promise<WriteResult>;
 }

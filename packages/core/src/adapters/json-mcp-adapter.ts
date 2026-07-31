@@ -129,6 +129,31 @@ export class JsonMcpAdapter implements ClientAdapter {
     return { path: filePath, changes, written: true, backupPath };
   }
 
+  async remove(
+    names: string[],
+    options: WriteOptions,
+  ): Promise<WriteResult> {
+    const filePath = this.pathFor(options.scope);
+    const document = (readJsonFile(filePath) ?? {}) as Record<string, unknown>;
+    const existing = this.readServersMap(filePath);
+    const next: Record<string, unknown> = { ...existing };
+    const changes: ServerChange[] = [];
+
+    for (const name of names) {
+      if (existing[name] === undefined) continue;
+      changes.push({ server: name, action: "remove" });
+      delete next[name];
+    }
+
+    if (options.dryRun || changes.length === 0) {
+      return { path: filePath, changes, written: false, backupPath: null };
+    }
+
+    document[this.serverKey] = next;
+    const backupPath = writeJsonFileSafe(filePath, document);
+    return { path: filePath, changes, written: true, backupPath };
+  }
+
   private pathFor(scope: Scope): string {
     const location = this.locations.find(
       (candidate) => candidate.scope === scope,

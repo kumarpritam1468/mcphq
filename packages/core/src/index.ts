@@ -34,6 +34,7 @@ export {
 export {
   type ConfigFile,
   configFileSchema,
+  fromCanonical,
   type McpServer,
   SCOPES,
   type Scope,

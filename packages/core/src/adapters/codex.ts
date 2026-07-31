@@ -133,6 +133,34 @@ export class CodexAdapter implements ClientAdapter {
     return { path: filePath, changes, written: true, backupPath };
   }
 
+  async remove(
+    names: string[],
+    options: WriteOptions,
+  ): Promise<WriteResult> {
+    const filePath = this.pathFor(options.scope);
+    const document = readTomlFile(filePath);
+    const existing = readServersTable(document);
+    const next: TomlTable = { ...existing };
+    const changes: ServerChange[] = [];
+
+    for (const name of names) {
+      if (existing[name] === undefined) continue;
+      changes.push({ server: name, action: "remove" });
+      delete next[name];
+    }
+
+    if (options.dryRun || changes.length === 0) {
+      return { path: filePath, changes, written: false, backupPath: null };
+    }
+
+    document.mcp_servers = next;
+    const serialized = `${stringify(document).trimEnd()}\n`;
+    const backupPath = writeTextFileSafe(filePath, serialized, (raw) => {
+      parse(raw);
+    });
+    return { path: filePath, changes, written: true, backupPath };
+  }
+
   private pathFor(scope: Scope): string {
     const location = this.getConfigPaths().find(
       (candidate) => candidate.scope === scope,
