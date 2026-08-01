@@ -34,8 +34,8 @@ export const serverNameSchema = z
   .min(1, "server name must not be empty")
   .max(128, "server name must be 128 characters or fewer")
   .regex(
-    /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
-    'server name must start with a letter or digit and contain only letters, digits, ".", "_" or "-"',
+    /^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)?$/,
+    'server name must start with a letter or digit and contain only letters, digits, ".", "_", "-", or a single "/" (for registry-style names like "org/server")',
   );
 
 /**

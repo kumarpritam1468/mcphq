@@ -110,6 +110,19 @@ describe("configFileSchema", () => {
         servers: { "-leading": { command: "npx" } },
       }).success,
     ).toBe(false);
+    expect(
+      configFileSchema.safeParse({
+        servers: { "org/name/extra": { command: "npx" } },
+      }).success,
+    ).toBe(false);
+  });
+
+  test("accepts a registry-style name with a single slash", () => {
+    expect(
+      configFileSchema.safeParse({
+        servers: { "com.pulsemcp/remote-filesystem": { command: "npx" } },
+      }).success,
+    ).toBe(true);
   });
 
   test("rejects top-level unknown keys", () => {

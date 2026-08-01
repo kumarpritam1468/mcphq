@@ -95,3 +95,9 @@ export {
   searchRegistry,
   templateVars,
 } from "./registry.js";
+export {
+  checkServer,
+  type SecurityFinding,
+  type SecuritySeverity,
+} from "./security.js";
+export { computeSyncStatus, type SyncStatus } from "./sync-status.js";

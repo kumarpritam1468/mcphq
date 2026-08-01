@@ -1,5 +1,10 @@
 import * as path from "node:path";
-import { ConfigError, getDetectedAdapters, loadConfig } from "@mcphq/core";
+import {
+  ConfigError,
+  computeSyncStatus,
+  getDetectedAdapters,
+  loadConfig,
+} from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
 
@@ -47,29 +52,7 @@ async function runList(): Promise<void> {
   const adapters = await getDetectedAdapters({
     projectDir: path.dirname(config.path),
   });
-
-  const syncedTo = new Map<string, string[]>();
-  for (const server of config.servers) syncedTo.set(server.name, []);
-
-  const warnings: string[] = [];
-  for (const adapter of adapters) {
-    let servers: { name: string }[];
-    try {
-      const result = await adapter.read(config.scope);
-      servers = result.servers;
-      warnings.push(
-        ...result.warnings.map((w) => `${adapter.displayName}: ${w}`),
-      );
-    } catch (err) {
-      warnings.push(
-        `${adapter.displayName}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      continue;
-    }
-    for (const server of servers) {
-      syncedTo.get(server.name)?.push(adapter.displayName);
-    }
-  }
+  const { syncedTo, warnings } = await computeSyncStatus(config, adapters);
 
   console.log();
   for (const server of config.servers) {
@@ -83,6 +66,7 @@ async function runList(): Promise<void> {
 
   if (warnings.length > 0) {
     console.log();
-    for (const warning of warnings) console.log(pc.yellow(`  warn: ${warning}`));
+    for (const warning of warnings)
+      console.log(pc.yellow(`  warn: ${warning}`));
   }
 }

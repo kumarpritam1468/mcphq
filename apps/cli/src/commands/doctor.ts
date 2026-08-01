@@ -4,15 +4,21 @@ import {
   type ClientAdapter,
   ConfigError,
   type ConfigFile,
+  checkServer,
   computeDrift,
+  computeSyncStatus,
   configFileSchema,
   type DriftEntry,
+  fetchRegistryServer,
+  fromCanonical,
   getDetectedAdapters,
+  isAllowlisted,
   type LoadedConfig,
   type LockFile,
   loadConfig,
   lockfilePathFor,
   type McpServer,
+  RegistryError,
   readLockfile,
   removeLockfileEntries,
   type Scope,
@@ -22,6 +28,7 @@ import {
   writeConfigFile,
   writeLockfile,
 } from "@mcphq/core";
+import * as ui from "@mcphq/ui";
 import type { Command } from "commander";
 import pc from "picocolors";
 
@@ -53,11 +60,15 @@ async function runDoctor(): Promise<void> {
     return;
   }
 
-  const lockfilePath = lockfilePathFor(config.path);
-  let lockfile = readLockfile(lockfilePath);
   const adapters = await getDetectedAdapters({
     projectDir: path.dirname(config.path),
   });
+
+  let foundAnything = await reportSecurityAndTrust(config);
+  foundAnything = (await reportSyncStatus(config, adapters)) || foundAnything;
+
+  const lockfilePath = lockfilePathFor(config.path);
+  let lockfile = readLockfile(lockfilePath);
 
   let foundDrift = false;
   for (const adapter of adapters) {
@@ -80,13 +91,69 @@ async function runDoctor(): Promise<void> {
     }
   }
 
-  if (!foundDrift) {
+  if (!foundAnything && !foundDrift) {
+    console.log(pc.green("\nNo issues found — everything is clean."));
+  }
+}
+
+/** Static security checks + best-effort registry trust info, per configured server. */
+async function reportSecurityAndTrust(config: LoadedConfig): Promise<boolean> {
+  const lines: string[] = [];
+  let registryDown = false;
+
+  for (const server of config.servers) {
+    for (const finding of checkServer(fromCanonical(server))) {
+      lines.push(
+        `  ${pc.bold(server.name)}: ${finding.severity === "error" ? ui.error(finding.message) : ui.warn(finding.message)}`,
+      );
+    }
+
+    if (registryDown) continue;
+    try {
+      const registryServer = await fetchRegistryServer(server.name);
+      if (!registryServer) continue;
+      const trusted = isAllowlisted(registryServer.repositoryUrl);
+      const clean = trusted && registryServer.status === "active";
+      const detail = `registry: ${registryServer.status}${trusted ? ", allowlisted publisher" : ", not on the mcphq-curated allowlist"}`;
+      lines.push(
+        `  ${pc.bold(server.name)}: ${clean ? ui.ok(detail) : ui.warn(detail)}`,
+      );
+    } catch (err) {
+      if (!(err instanceof RegistryError)) throw err;
+      registryDown = true;
+      lines.push(
+        `  ${ui.warn(`MCP registry unreachable — skipping trust checks for the rest of this run (${err.message})`)}`,
+      );
+    }
+  }
+
+  if (lines.length === 0) return false;
+  console.log(`\n${pc.bold("Security & trust")}`);
+  for (const line of lines) console.log(line);
+  return true;
+}
+
+/** Configured servers that aren't synced anywhere, and client entries mcphq couldn't parse. */
+async function reportSyncStatus(
+  config: LoadedConfig,
+  adapters: ClientAdapter[],
+): Promise<boolean> {
+  const { syncedTo, warnings } = await computeSyncStatus(config, adapters);
+  const unsynced = config.servers.filter(
+    (s) => (syncedTo.get(s.name) ?? []).length === 0,
+  );
+  if (unsynced.length === 0 && warnings.length === 0) return false;
+
+  console.log(`\n${pc.bold("Sync status")}`);
+  for (const server of unsynced) {
     console.log(
-      pc.green(
-        "No drift detected — every synced client matches mcp.config.json.",
-      ),
+      `  ${ui.warn(`"${server.name}" is not synced to any client — run \`mcphq sync\``)}`,
     );
   }
+  for (const warning of warnings) {
+    console.log(`  ${ui.warn(warning)}`);
+  }
+  return true;
 }
 
 async function reconcile(
