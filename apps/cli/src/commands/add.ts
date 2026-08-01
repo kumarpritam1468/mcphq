@@ -16,7 +16,7 @@ import {
 } from "@mcphq/core";
 import type { Command } from "commander";
 import pc from "picocolors";
-import { configPathFor, confirmOrForce } from "../shared.js";
+import { configPathFor, confirmOrForce, withSpinner } from "../shared.js";
 import { runSync } from "./sync.js";
 
 interface AddOptions {
@@ -67,7 +67,10 @@ async function runAdd(name: string, options: AddOptions): Promise<void> {
 
   let server: RegistryServer | null;
   try {
-    server = await fetchRegistryServer(name);
+    server = await withSpinner(
+      `Looking up "${name}" in the MCP registry...`,
+      () => fetchRegistryServer(name),
+    );
   } catch (err) {
     const message = err instanceof RegistryError ? err.message : String(err);
     console.error(

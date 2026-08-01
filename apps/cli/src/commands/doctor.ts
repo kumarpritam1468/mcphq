@@ -31,14 +31,23 @@ import {
 import * as ui from "@mcphq/ui";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { withSpinner } from "../shared.js";
+
+interface DoctorOptions {
+  json?: boolean;
+}
 
 export function registerDoctor(program: Command): void {
   program
     .command("doctor")
     .description("check every synced client for drift since the last sync")
-    .action(async () => {
+    .option(
+      "--json",
+      "output machine-readable JSON instead of a report (skips interactive drift reconciliation)",
+    )
+    .action(async (options: DoctorOptions) => {
       try {
-        await runDoctor();
+        await runDoctor(options);
       } catch (err) {
         if (err instanceof ConfigError) {
           console.error(pc.red(err.message));
@@ -50,7 +59,7 @@ export function registerDoctor(program: Command): void {
     });
 }
 
-async function runDoctor(): Promise<void> {
+async function runDoctor(options: DoctorOptions): Promise<void> {
   const config = loadConfig();
   if (!config) {
     console.error(
@@ -63,6 +72,11 @@ async function runDoctor(): Promise<void> {
   const adapters = await getDetectedAdapters({
     projectDir: path.dirname(config.path),
   });
+
+  if (options.json) {
+    await runDoctorJson(config, adapters);
+    return;
+  }
 
   let foundAnything = await reportSecurityAndTrust(config);
   foundAnything = (await reportSyncStatus(config, adapters)) || foundAnything;
@@ -96,8 +110,89 @@ async function runDoctor(): Promise<void> {
   }
 }
 
+/**
+ * The --json path: same underlying checks as the human report, but no
+ * interactive drift reconciliation (can't prompt when output is meant to be
+ * parsed) — drift is reported statically instead.
+ */
+async function runDoctorJson(
+  config: LoadedConfig,
+  adapters: ClientAdapter[],
+): Promise<void> {
+  const security = config.servers.flatMap((server) =>
+    checkServer(fromCanonical(server)).map((f) => ({
+      server: server.name,
+      rule: f.rule,
+      severity: f.severity,
+      message: f.message,
+    })),
+  );
+
+  const trust: { server: string; status: string; allowlisted: boolean }[] = [];
+  for (const server of config.servers) {
+    try {
+      const registryServer = await fetchRegistryServer(server.name);
+      if (registryServer) {
+        trust.push({
+          server: server.name,
+          status: registryServer.status,
+          allowlisted: isAllowlisted(registryServer.repositoryUrl),
+        });
+      }
+    } catch (err) {
+      if (!(err instanceof RegistryError)) throw err;
+      break;
+    }
+  }
+
+  const { syncedTo, warnings } = await computeSyncStatus(config, adapters);
+  const unsynced = config.servers
+    .filter((s) => (syncedTo.get(s.name) ?? []).length === 0)
+    .map((s) => s.name);
+
+  const lockfile = readLockfile(lockfilePathFor(config.path));
+  const drift: { client: string; server: string; status: string }[] = [];
+  for (const adapter of adapters) {
+    const current = await adapter.read(config.scope);
+    for (const entry of computeDrift(
+      lockfile,
+      adapter.name,
+      config.scope,
+      current.servers,
+    )) {
+      drift.push({
+        client: adapter.displayName,
+        server: entry.server,
+        status: entry.status,
+      });
+    }
+  }
+
+  console.log(
+    JSON.stringify(
+      { security, trust, syncStatus: { unsynced, warnings }, drift },
+      null,
+      2,
+    ),
+  );
+}
+
 /** Static security checks + best-effort registry trust info, per configured server. */
 async function reportSecurityAndTrust(config: LoadedConfig): Promise<boolean> {
+  const lines = await withSpinner(
+    "Checking servers for security issues and registry trust...",
+    () => gatherSecurityAndTrustLines(config),
+  );
+
+  if (lines.length === 0) return false;
+  console.log(ui.section("Security & trust"));
+  for (const line of lines) console.log(line);
+  return true;
+}
+
+async function gatherSecurityAndTrustLines(
+  config: LoadedConfig,
+): Promise<string[]> {
   const lines: string[] = [];
   let registryDown = false;
 
@@ -127,10 +222,7 @@ async function reportSecurityAndTrust(config: LoadedConfig): Promise<boolean> {
     }
   }
 
-  if (lines.length === 0) return false;
-  console.log(`\n${pc.bold("Security & trust")}`);
-  for (const line of lines) console.log(line);
-  return true;
+  return lines;
 }
 
 /** Configured servers that aren't synced anywhere, and client entries mcphq couldn't parse. */
@@ -144,7 +236,7 @@ async function reportSyncStatus(
   );
   if (unsynced.length === 0 && warnings.length === 0) return false;
 
-  console.log(`\n${pc.bold("Sync status")}`);
+  console.log(ui.section("Sync status"));
   for (const server of unsynced) {
     console.log(
       `  ${ui.warn(`"${server.name}" is not synced to any client — run \`mcphq sync\``)}`,

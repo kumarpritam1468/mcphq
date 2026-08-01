@@ -12,6 +12,7 @@ import {
   type WriteResult,
   writeLockfile,
 } from "@mcphq/core";
+import * as ui from "@mcphq/ui";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { confirmOrForce } from "../shared.js";
@@ -75,8 +76,8 @@ export async function runSync(options: SyncOptions): Promise<void> {
   });
   if (adapters.length === 0) {
     console.error(
-      pc.yellow(
-        "No supported AI clients detected on this machine. Nothing to sync to.",
+      ui.error(
+        "no supported AI clients detected on this machine. Nothing to sync to.",
       ),
     );
     process.exitCode = 1;
@@ -141,9 +142,7 @@ async function syncAdapter(
       const skipped = new Set(updates.map((u) => u.server));
       serversToWrite = config.servers.filter((s) => !skipped.has(s.name));
       console.log(
-        pc.yellow(
-          `  Skipped ${skipped.size} differing entr${skipped.size === 1 ? "y" : "ies"} — re-run with --force to overwrite.`,
-        ),
+        `  ${ui.warn(`skipped ${skipped.size} differing entr${skipped.size === 1 ? "y" : "ies"} — re-run with --force to overwrite.`)}`,
       );
     }
   }

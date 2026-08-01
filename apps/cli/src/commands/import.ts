@@ -9,6 +9,7 @@ import {
   type Scope,
   writeConfigFile,
 } from "@mcphq/core";
+import * as ui from "@mcphq/ui";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { configPathFor } from "../shared.js";
@@ -89,7 +90,7 @@ async function runImport(options: ImportOptions): Promise<void> {
   const projectDir = existing ? path.dirname(existing.path) : process.cwd();
   const adapters = await getDetectedAdapters({ projectDir });
   if (adapters.length === 0) {
-    console.log(pc.yellow("No supported AI clients detected on this machine."));
+    console.log(ui.warn("no supported AI clients detected on this machine."));
     return;
   }
 
@@ -103,13 +104,11 @@ async function runImport(options: ImportOptions): Promise<void> {
       const result = await adapter.read(scope);
       found = result.servers;
       for (const w of result.warnings) {
-        console.log(pc.yellow(`  warn: ${adapter.displayName}: ${w}`));
+        console.log(`  ${ui.warn(`${adapter.displayName}: ${w}`)}`);
       }
     } catch (err) {
       console.log(
-        pc.yellow(
-          `  warn: ${adapter.displayName}: ${err instanceof Error ? err.message : String(err)}`,
-        ),
+        `  ${ui.warn(`${adapter.displayName}: ${err instanceof Error ? err.message : String(err)}`)}`,
       );
       continue;
     }
@@ -166,6 +165,8 @@ async function runImport(options: ImportOptions): Promise<void> {
   writeConfigFile(targetPath, { ...configFile, servers }, { force: true });
   console.log(pc.green(`✔ wrote ${targetPath}`));
   console.log(
-    `Next: run ${pc.bold("mcphq sync")} to push these into every client.`,
+    ui.hint(
+      `Next: run ${pc.bold("mcphq sync")} to push these into every client.`,
+    ),
   );
 }

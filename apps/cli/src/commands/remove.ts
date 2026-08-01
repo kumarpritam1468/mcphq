@@ -9,6 +9,7 @@ import {
   writeConfigFile,
   writeLockfile,
 } from "@mcphq/core";
+import * as ui from "@mcphq/ui";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { confirmOrForce } from "../shared.js";
@@ -88,7 +89,7 @@ async function runRemove(name: string, options: RemoveOptions): Promise<void> {
     `Remove "${name}" from mcp.config.json and ${clientTargets} client${clientTargets === 1 ? "" : "s"}?`,
   );
   if (!approved) {
-    console.log(pc.yellow("Cancelled — nothing was removed."));
+    console.log(ui.warn("cancelled — nothing was removed."));
     process.exitCode = 1;
     return;
   }

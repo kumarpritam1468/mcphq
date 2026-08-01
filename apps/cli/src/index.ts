@@ -1,31 +1,20 @@
 #!/usr/bin/env node
-import { CORE_NAME } from "@mcphq/core";
-import { Command } from "commander";
+// picocolors (used throughout the CLI) force-enables color on win32
+// regardless of TTY status, so piping mcphq's output to a file on Windows
+// would otherwise still embed ANSI codes. This must run — and NO_COLOR must
+// be set — before anything that imports picocolors is loaded, which is why
+// it's a separate bootstrap file that dynamically imports the real CLI
+// rather than a check inside cli.ts itself.
+if (
+  !process.env.FORCE_COLOR &&
+  (!process.stdout.isTTY ||
+    "NO_COLOR" in process.env ||
+    process.env.TERM === "dumb" ||
+    process.argv.includes("--no-color"))
+) {
+  process.env.NO_COLOR = "1";
+}
 
-import pkg from "../package.json" with { type: "json" };
-import { registerAdd } from "./commands/add.js";
-import { registerDoctor } from "./commands/doctor.js";
-import { registerImport } from "./commands/import.js";
-import { registerInit } from "./commands/init.js";
-import { registerList } from "./commands/list.js";
-import { registerRemove } from "./commands/remove.js";
-import { registerSync } from "./commands/sync.js";
+await import("./cli.js");
 
-const program = new Command();
-
-program
-  .name(CORE_NAME)
-  .description(
-    "Your MCP headquarters. Define servers once, sync them to every AI client.",
-  )
-  .version(pkg.version);
-
-registerAdd(program);
-registerDoctor(program);
-registerImport(program);
-registerInit(program);
-registerList(program);
-registerRemove(program);
-registerSync(program);
-
-program.parse();
+export {};
