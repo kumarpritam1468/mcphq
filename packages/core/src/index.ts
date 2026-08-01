@@ -31,6 +31,7 @@ export {
   type VsCodeAdapterOptions,
   vsCodeUserDir,
 } from "./adapters/vscode.js";
+export { isAllowlisted, TRUSTED_REPOSITORY_PREFIXES } from "./allowlist.js";
 export {
   type ConfigFile,
   configFileSchema,
@@ -78,3 +79,19 @@ export {
   updateLockfileEntries,
   writeLockfile,
 } from "./lockfile.js";
+export {
+  buildServerEntry,
+  type EnvVarSpec,
+  fetchRegistryServer,
+  type HeaderSpec,
+  type InstallTarget,
+  pickInstallTarget,
+  REGISTRY_BASE_URL,
+  RegistryError,
+  type RegistryPackage,
+  type RegistryRemote,
+  type RegistryServer,
+  requiredInputs,
+  searchRegistry,
+  templateVars,
+} from "./registry.js";

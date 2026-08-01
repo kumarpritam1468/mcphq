@@ -51,7 +51,7 @@ export function registerSync(program: Command): void {
     });
 }
 
-async function runSync(options: SyncOptions): Promise<void> {
+export async function runSync(options: SyncOptions): Promise<void> {
   const config = loadConfig();
   if (!config) {
     console.error(
