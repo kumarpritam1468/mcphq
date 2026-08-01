@@ -44,6 +44,9 @@
 - **Safe by construction** — every write is backed up (`.mcphq-backup`), staged to a temp file, parsed back to confirm it's valid, then atomically renamed into place. A crash mid-write never corrupts your config.
 - **Import what's already there** — already have servers configured by hand in Claude Code or Cursor? `mcphq import` pulls them into `mcp.config.json` so you stop maintaining duplicates.
 - **Zero-surprise dry runs** — `--dry-run` on every mutating command shows the exact diff before anything touches disk.
+- **Trust before you add** — `mcphq add <server>` looks a server up in the official MCP Registry, shows its publisher, verification status, and last-updated date, then confirms before writing and syncing anything.
+- **Security checks, not just drift** — `mcphq doctor` also flags destructive command patterns, shell-injection risk, unpinned "rug pull"-able packages, and sensitive env values, alongside drift and registry trust status.
+- **Scriptable** — `mcphq list --json` and `mcphq doctor --json` for CI/tooling; every command respects `NO_COLOR`.
 
 ## Supported Clients
 
@@ -101,9 +104,10 @@ That's it — the server is now configured in every AI client on your machine, i
 | Command | What it does |
 |---|---|
 | `mcphq init` | Create `mcp.config.json`, interactively or with `--no-input` |
+| `mcphq add <server>` | Look up a server in the MCP Registry, show publisher/trust info, then add it to `mcp.config.json` and sync |
 | `mcphq sync` | Push `mcp.config.json` into every detected client. `--dry-run` to preview, `--force` to accept all overwrites, `--no-input` for CI |
-| `mcphq list` | Show every configured server and which clients it's synced to |
-| `mcphq doctor` | Detect drift since the last sync and reconcile it (keep-theirs / keep-mine / skip), server by server |
+| `mcphq list` | Show every configured server and which clients it's synced to. `--json` for machine-readable output |
+| `mcphq doctor` | Security checks, registry trust status, sync status, and drift reconciliation (keep-theirs / keep-mine / skip) in one report. `--json` for CI (skips interactive reconciliation) |
 | `mcphq remove <server>` | Remove a server from `mcp.config.json` and every synced client |
 | `mcphq import` | Pull servers already hand-configured in a detected client into `mcp.config.json`. `--global` targets the global config, `--force` to overwrite conflicts |
 
@@ -115,6 +119,8 @@ Run any command with `--help` for the full flag list.
 - **Adapters** (`packages/core/src/adapters/`) know how to read and write one specific client's config format. Each one **upserts only the servers mcphq owns** — it never removes a manually-added entry or touches unrelated keys in your config.
 - **`mcphq.lock.json`** records a content hash of what was last synced to each client, per server. `mcphq doctor` compares the client's current state against it to catch hand-edits — no more silently-diverging configs nobody notices until something breaks.
 - **Every write is atomic**: backup → write to temp file → parse the temp file to confirm it's valid → rename over the original. A crash mid-write leaves your original file untouched.
+- **The official MCP Registry + a curated allowlist** (`packages/core/src/registry.ts`, `allowlist.ts`) back `mcphq add` and `doctor`'s trust checks — allowlisting is by publisher repository, not per-server, and every registry call degrades gracefully if the registry is unreachable.
+- **`packages/core/src/security.ts`** runs pattern-based static checks against every configured server: destructive commands, shell metacharacters, unpinned packages, sensitive env values, plaintext remote URLs.
 
 ## Roadmap
 
@@ -123,13 +129,15 @@ mcphq is under active development. Shipped so far:
 - [x] `init` / `sync` — canonical config, multi-client sync, safe atomic writes
 - [x] `list` / `remove` / `import` — full config lifecycle without hand-editing client files
 - [x] `doctor` — drift detection against a lockfile, with keep-theirs/keep-mine reconciliation
+- [x] `add` — MCP Registry lookup, publisher trust info, curated allowlist
+- [x] Static security checks — destructive/injection command patterns, unpinned packages, sensitive env values, folded into `doctor`'s report
+- [x] `--json` on `list`/`doctor`, spinners on slow calls, `NO_COLOR`-correct output everywhere
 
 Coming next:
 
-- [ ] `mcphq add <server>` — look up a server in the MCP Registry, show publisher trust info, then add + sync
-- [ ] Static security checks — flag suspicious env access, destructive command patterns, unverified publishers
 - [ ] Compiled binaries + `npx mcphq` — no Bun install required
 - [ ] CI across Windows/macOS/Linux
+- [ ] Live introspection (token cost, deep tool-description security scanning) via a Go sidecar
 
 ## Contributing
 
